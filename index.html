@@ -585,118 +585,152 @@
         &copy; Prepared by Bhavin R Patel, Lecturer Mathematics
     </div>
 </footer>
-    <script>
+<script>
         // Page visit counter logic
         window.onload = function() {
             let visits = localStorage.getItem('complexNumberPageVisits');
             if (!visits) visits = 0;
             visits++;
             localStorage.setItem('complexNumberPageVisits', visits);
-            document.getElementById('visitCounter').innerText = "Page Visits / મુલાકાત: " + visits;
+            // Updated to check if element exists before setting text to avoid errors
+            let visitCounterElem = document.getElementById('visitCounter');
+            if(visitCounterElem) {
+                visitCounterElem.innerText = "Page Visits / મુલાકાત: " + visits;
+            }
+        }
+
+        // Helper function to parse standard numbers and square roots (e.g., "sqrt(3)")
+        function parseCustomInput(val) {
+            if (!val) return NaN;
+            let str = val.replace(/\s+/g, '').toLowerCase();
+            let sign = 1;
+            if (str.startsWith('-')) {
+                sign = -1;
+                str = str.substring(1);
+            }
+            if (str.startsWith('sqrt(') && str.endsWith(')')) {
+                let numStr = str.substring(5, str.length - 1);
+                return sign * Math.sqrt(parseFloat(numStr));
+            }
+            return sign * parseFloat(str);
+        }
+
+        // Helper function to convert decimals to MathJax fractions (p/q)
+        function toFraction(value) {
+            if (isNaN(value)) return "0";
+            // Check if it's already a clean integer or very close to one due to float math
+            if (Math.abs(Math.round(value) - value) < 1e-10) return Math.round(value).toString();
+            
+            let sign = value < 0 ? "-" : "";
+            let n = Math.abs(value);
+            
+            // Continued fraction algorithm to find the closest fraction
+            let tolerance = 1.0E-6;
+            let h1 = 1, h2 = 0, k1 = 0, k2 = 1;
+            let b = n;
+            
+            do {
+                let a = Math.floor(b);
+                let aux = h1; h1 = a * h1 + h2; h2 = aux;
+                aux = k1; k1 = a * k1 + k2; k2 = aux;
+                b = 1 / (b - a);
+            } while (Math.abs(n - h1 / k1) > n * tolerance && k1 < 1000);
+            
+            // If the denominator gets too large, it's likely an irrational number (like a square root).
+            // In that case, keep it as a clean decimal.
+            if (k1 > 100) return sign + n.toFixed(3); 
+            
+            if (k1 === 1) return sign + h1;
+            return `${sign}\\frac{${h1}}{${k1}}`; // Returns LaTeX fraction for MathJax
         }
 
         // Interactive Lab Logic
-        // Helper function to parse standard numbers and square roots
-function parseCustomInput(val) {
-    if (!val) return NaN;
-    
-    // Remove all spaces and convert to lowercase
-    let str = val.replace(/\s+/g, '').toLowerCase();
-    
-    // Handle negative signs
-    let sign = 1;
-    if (str.startsWith('-')) {
-        sign = -1;
-        str = str.substring(1);
-    }
-
-    // Check if the input is in the format sqrt(x)
-    if (str.startsWith('sqrt(') && str.endsWith(')')) {
-        let numStr = str.substring(5, str.length - 1);
-        let num = parseFloat(numStr);
-        return sign * Math.sqrt(num);
-    }
-    
-    // Default fallback for regular numbers
-    return sign * parseFloat(str);
-}function calculate() {
+        function calculate() {
             let a = parseCustomInput(document.getElementById('realPart').value);
             let b = parseCustomInput(document.getElementById('imagPart').value);
             let op = document.getElementById('operation').value;
             let out = document.getElementById('output');
 
             if (isNaN(a) || isNaN(b)) {
-                out.innerHTML = "<span style='color:#ef4444;'>Please enter valid real and imaginary numbers. (કૃપા કરીને માન્ય સંખ્યાઓ દાખલ કરો.)</span>";
+                out.innerHTML = "<span style='color:#ef4444;'>Please enter valid numbers or format like sqrt(2). (કૃપા કરીને માન્ય સંખ્યાઓ દાખલ કરો.)</span>";
                 return;
             }
 
             let steps = "";
             let bSign = b >= 0 ? '+' : '-';
             let absB = Math.abs(b);
+            
+            // Format starting values as fractions for the display
+            let aFrac = toFraction(a);
+            let absBFrac = toFraction(absB);
+            let bFrac = toFraction(b);
 
             if (op === 'modulus') {
                 let r2 = a*a + b*b;
-                let r = Math.sqrt(r2).toFixed(2);
+                let r = Math.sqrt(r2);
                 steps = `
-                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Find Modulus of \\( z = ${a} ${bSign} ${absB}i \\)</strong></div>
+                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Find Modulus of \\( z = ${aFrac} ${bSign} ${absBFrac}i \\)</strong></div>
                     <b>Step 1:</b> Formula for modulus is \\( |z| = \\sqrt{a^2 + b^2} \\)<br>
                     <span class="guj">(માનાંક માટેનું સૂત્ર)</span><br><br>
-                    <b>Step 2:</b> Substitute \\( a = ${a} \\) and \\( b = ${b} \\)<br>
+                    <b>Step 2:</b> Substitute \\( a = ${aFrac} \\) and \\( b = ${bFrac} \\)<br>
                     <span class="guj">(\\( a \\) અને \\( b \\) ની કિંમત મૂકો)</span><br><br>
-                    <b>Step 3:</b> \\( |z| = \\sqrt{(${a})^2 + (${b})^2} = \\sqrt{${a*a} + ${b*b}} = \\sqrt{${r2}} \\approx ${r} \\)
+                    <b>Step 3:</b> \\( |z| = \\sqrt{(${aFrac})^2 + (${bFrac})^2} = \\sqrt{${toFraction(r2)}} \\approx ${toFraction(r)} \\)
                 `;
             } else if (op === 'conjugate') {
                 steps = `
-                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Find Conjugate of \\( z = ${a} ${bSign} ${absB}i \\)</strong></div>
+                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Find Conjugate of \\( z = ${aFrac} ${bSign} ${absBFrac}i \\)</strong></div>
                     <b>Step 1:</b> Formula for conjugate is \\( \\bar{z} = a - bi \\)<br>
                     <span class="guj">(અનુબદ્ધ માટેનું સૂત્ર)</span><br><br>
                     <b>Step 2:</b> Change the sign of the imaginary part.<br>
                     <span class="guj">(કાલ્પનિક ભાગનું ચિહ્ન બદલો.)</span><br><br>
-                    <b>Step 3:</b> \\( \\bar{z} = ${a} ${b >= 0 ? '-' : '+'} ${absB}i \\)
+                    <b>Step 3:</b> \\( \\bar{z} = ${aFrac} ${b >= 0 ? '-' : '+'} ${absBFrac}i \\)
                 `;
             } else if (op === 'polar') {
-                let r = Math.sqrt(a*a + b*b).toFixed(2);
+                let r = Math.sqrt(a*a + b*b);
                 let theta = Math.atan2(b, a);
                 let thetaDeg = (theta * 180 / Math.PI).toFixed(2);
                 steps = `
-                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Polar form of \\( z = ${a} ${bSign} ${absB}i \\)</strong></div>
-                    <b>Step 1:</b> Find Modulus \\( r = \\sqrt{a^2 + b^2} = ${r} \\)<br>
+                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Polar form of \\( z = ${aFrac} ${bSign} ${absBFrac}i \\)</strong></div>
+                    <b>Step 1:</b> Find Modulus \\( r = \\sqrt{a^2 + b^2} = ${toFraction(r)} \\)<br>
                     <span class="guj">(માનાંક શોધો)</span><br><br>
-                    <b>Step 2:</b> Find Argument \\( \\theta = \\tan^{-1}(b/a) = \\tan^{-1}(${b}/${a}) \\approx ${thetaDeg}^\\circ \\)<br>
+                    <b>Step 2:</b> Find Argument \\( \\theta = \\tan^{-1}(b/a) = \\tan^{-1}(\\frac{${bFrac}}{${aFrac}}) \\approx ${thetaDeg}^\\circ \\)<br>
                     <span class="guj">(કોણાંક શોધો)</span><br><br>
-                    <b>Step 3:</b> Polar form \\( z = r(\\cos\\theta + i\\sin\\theta) = ${r}(\\cos(${thetaDeg}^\\circ) + i\\sin(${thetaDeg}^\\circ)) \\)<br>
+                    <b>Step 3:</b> Polar form \\( z = r(\\cos\\theta + i\\sin\\theta) = ${toFraction(r)}(\\cos(${thetaDeg}^\\circ) + i\\sin(${thetaDeg}^\\circ)) \\)<br>
                     <span class="guj">(ધ્રુવીય સ્વરૂપ)</span>
                 `;
             } else if (op === 'inverse') {
                 let r2 = a*a + b*b;
                 if(r2 === 0) { 
-                    steps = "Inverse does not exist for \( 0 + 0i \). (વ્યસ્ત અસ્તિત્વમાં નથી.)"; 
+                    steps = "Inverse does not exist for \\( 0 + 0i \\). (વ્યસ્ત અસ્તિત્વમાં નથી.)"; 
                 } else {
+                    let invAFrac = toFraction(a / r2);
+                    let invBFrac = toFraction(absB / r2);
                     steps = `
-                        <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Find Inverse of \\( z = ${a} ${bSign} ${absB}i \\)</strong></div>
+                        <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Find Inverse of \\( z = ${aFrac} ${bSign} ${absBFrac}i \\)</strong></div>
                         <b>Step 1:</b> Formula for inverse is \\( z^{-1} = \\frac{\\bar{z}}{|z|^2} \\)<br>
                         <span class="guj">(વ્યસ્ત માટેનું સૂત્ર)</span><br><br>
-                        <b>Step 2:</b> \\( \\bar{z} = ${a} ${b >= 0 ? '-' : '+'} ${absB}i \\) and \\( |z|^2 = ${r2} \\)<br><br>
-                        <b>Step 3:</b> \\( z^{-1} = \\frac{${a}}{${r2}} ${b >= 0 ? '-' : '+'} \\frac{${absB}}{${r2}}i \\)
+                        <b>Step 2:</b> \\( \\bar{z} = ${aFrac} ${b >= 0 ? '-' : '+'} ${absBFrac}i \\) and \\( |z|^2 = ${toFraction(r2)} \\)<br><br>
+                        <b>Step 3:</b> \\( z^{-1} = ${invAFrac} ${b >= 0 ? '-' : '+'} ${invBFrac}i \\)
                     `;
                 }
             } else if (op === 'sqrt') {
                 let r = Math.sqrt(a*a + b*b);
-                let x = Math.sqrt((r + a) / 2).toFixed(2);
-                let y = Math.sqrt((r - a) / 2).toFixed(2);
+                let x = Math.sqrt((r + a) / 2);
+                let y = Math.sqrt((r - a) / 2);
                 let sgn = b >= 0 ? '+' : '-';
                 steps = `
-                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Square root of \\( z = ${a} ${bSign} ${absB}i \\)</strong></div>
+                    <div style="margin-bottom:10px; color:#38bdf8;"><strong>Task: Square root of \\( z = ${aFrac} ${bSign} ${absBFrac}i \\)</strong></div>
                     <b>Step 1:</b> Formula: \\( \\pm \\left( \\sqrt{\\frac{|z|+a}{2}} + i \\cdot \\text{sgn}(b) \\sqrt{\\frac{|z|-a}{2}} \\right) \\)<br>
                     <span class="guj">(વર્ગમૂળ માટેનું સૂત્ર)</span><br><br>
-                    <b>Step 2:</b> Calculate Modulus \\( |z| = ${r.toFixed(2)} \\)<br><br>
-                    <b>Step 3:</b> Real part = \\( \\sqrt{(${r.toFixed(2)} + ${a})/2} = ${x} \\)<br>
-                    <b>Step 4:</b> Imag part = \\( \\sqrt{(${r.toFixed(2)} - ${a})/2} = ${y} \\)<br><br>
-                    <b>Final Answer (જવાબ):</b> \\( \\pm (${x} ${sgn} ${y}i) \\)
+                    <b>Step 2:</b> Calculate Modulus \\( |z| = ${toFraction(r)} \\)<br><br>
+                    <b>Step 3:</b> Real part = \\( \\sqrt{(${toFraction(r)} + ${aFrac})/2} = ${toFraction(x)} \\)<br>
+                    <b>Step 4:</b> Imag part = \\( \\sqrt{(${toFraction(r)} - ${aFrac})/2} = ${toFraction(y)} \\)<br><br>
+                    <b>Final Answer (જવાબ):</b> \\( \\pm (${toFraction(x)} ${sgn} ${toFraction(y)}i) \\)
                 `;
             }
 
             out.innerHTML = steps;
+            
             // Tell MathJax to re-render the formulas
             if (window.MathJax) {
                 MathJax.typesetPromise([out]);
