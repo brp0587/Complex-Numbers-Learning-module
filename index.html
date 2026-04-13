@@ -550,8 +550,8 @@
             <div class="guj" style="margin-bottom: 1.5rem;">ઇન્ટરેક્ટિવ સંકર સંખ્યા કેલ્ક્યુલેટર (આપેલ વિષયોના પદ્ધતિસરના ઉકેલો માટે)</div>
 
             <div class="control-panel">
-                <input type="number" id="realPart" placeholder="Real Part (a) વાસ્તવિક ભાગ">
-                <input type="number" id="imagPart" placeholder="Imaginary (b) કાલ્પનિક ભાગ">
+               <input type="text" id="realPart" placeholder="Real Part (e.g. 2, sqrt(3)) વાસ્તવિક ભાગ">
+               <input type="text" id="imagPart" placeholder="Imaginary (e.g. -5, sqrt(2)) કાલ્પનિક ભાગ">
                 <select id="operation">
                     <option value="modulus">Find Modulus (માનાંક)</option>
                     <option value="conjugate">Find Conjugate (અનુબદ્ધ)</option>
@@ -596,9 +596,32 @@
         }
 
         // Interactive Lab Logic
-        function calculate() {
-            let a = parseFloat(document.getElementById('realPart').value);
-            let b = parseFloat(document.getElementById('imagPart').value);
+        // Helper function to parse standard numbers and square roots
+function parseCustomInput(val) {
+    if (!val) return NaN;
+    
+    // Remove all spaces and convert to lowercase
+    let str = val.replace(/\s+/g, '').toLowerCase();
+    
+    // Handle negative signs
+    let sign = 1;
+    if (str.startsWith('-')) {
+        sign = -1;
+        str = str.substring(1);
+    }
+
+    // Check if the input is in the format sqrt(x)
+    if (str.startsWith('sqrt(') && str.endsWith(')')) {
+        let numStr = str.substring(5, str.length - 1);
+        let num = parseFloat(numStr);
+        return sign * Math.sqrt(num);
+    }
+    
+    // Default fallback for regular numbers
+    return sign * parseFloat(str);
+}function calculate() {
+            let a = parseCustomInput(document.getElementById('realPart').value);
+            let b = parseCustomInput(document.getElementById('imagPart').value);
             let op = document.getElementById('operation').value;
             let out = document.getElementById('output');
 
