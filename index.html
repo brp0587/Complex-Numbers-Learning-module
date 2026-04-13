@@ -592,75 +592,52 @@
             if (!visits) visits = 0;
             visits++;
             localStorage.setItem('complexNumberPageVisits', visits);
-            // Updated to check if element exists before setting text to avoid errors
             let visitCounterElem = document.getElementById('visitCounter');
             if(visitCounterElem) {
                 visitCounterElem.innerText = "Page Visits / મુલાકાત: " + visits;
             }
         }
 
-        // Helper function to parse standard numbers and square roots (e.g., "sqrt(3)")
+        // Helper function to parse standard numbers, fractions (1/2), and square roots (sqrt(3))
         function parseCustomInput(val) {
             if (!val) return NaN;
+            
             let str = val.replace(/\s+/g, '').toLowerCase();
+            
             let sign = 1;
             if (str.startsWith('-')) {
                 sign = -1;
                 str = str.substring(1);
             }
+
+            if (str.includes('/')) {
+                let parts = str.split('/');
+                if (parts.length === 2) {
+                    let numerator = parseFloat(parts[0]);
+                    let denominator = parseFloat(parts[1]);
+                    
+                    if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
+                        return sign * (numerator / denominator);
+                    }
+                }
+            }
+
             if (str.startsWith('sqrt(') && str.endsWith(')')) {
                 let numStr = str.substring(5, str.length - 1);
                 return sign * Math.sqrt(parseFloat(numStr));
             }
+            
             return sign * parseFloat(str);
         }
-// Helper function to parse standard numbers, fractions (1/2), and square roots (sqrt(3))
-function parseCustomInput(val) {
-    if (!val) return NaN;
-    
-    // Remove spaces and convert to lowercase
-    let str = val.replace(/\s+/g, '').toLowerCase();
-    
-    // Handle negative signs
-    let sign = 1;
-    if (str.startsWith('-')) {
-        sign = -1;
-        str = str.substring(1);
-    }
 
-    // NEW: Handle direct fraction inputs like "1/2" or "3/4"
-    if (str.includes('/')) {
-        let parts = str.split('/');
-        if (parts.length === 2) {
-            let numerator = parseFloat(parts[0]);
-            let denominator = parseFloat(parts[1]);
-            
-            // If both sides of the slash are valid numbers, divide them
-            if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
-                return sign * (numerator / denominator);
-            }
-        }
-    }
-
-    // Handle square roots like "sqrt(2)"
-    if (str.startsWith('sqrt(') && str.endsWith(')')) {
-        let numStr = str.substring(5, str.length - 1);
-        return sign * Math.sqrt(parseFloat(numStr));
-    }
-    
-    // Fallback for regular numbers
-    return sign * parseFloat(str);
-}
         // Helper function to convert decimals to MathJax fractions (p/q)
         function toFraction(value) {
             if (isNaN(value)) return "0";
-            // Check if it's already a clean integer or very close to one due to float math
             if (Math.abs(Math.round(value) - value) < 1e-10) return Math.round(value).toString();
             
             let sign = value < 0 ? "-" : "";
             let n = Math.abs(value);
             
-            // Continued fraction algorithm to find the closest fraction
             let tolerance = 1.0E-6;
             let h1 = 1, h2 = 0, k1 = 0, k2 = 1;
             let b = n;
@@ -672,12 +649,10 @@ function parseCustomInput(val) {
                 b = 1 / (b - a);
             } while (Math.abs(n - h1 / k1) > n * tolerance && k1 < 1000);
             
-            // If the denominator gets too large, it's likely an irrational number (like a square root).
-            // In that case, keep it as a clean decimal.
             if (k1 > 100) return sign + n.toFixed(3); 
             
             if (k1 === 1) return sign + h1;
-            return `${sign}\\frac{${h1}}{${k1}}`; // Returns LaTeX fraction for MathJax
+            return `${sign}\\frac{${h1}}{${k1}}`;
         }
 
         // Interactive Lab Logic
@@ -696,7 +671,6 @@ function parseCustomInput(val) {
             let bSign = b >= 0 ? '+' : '-';
             let absB = Math.abs(b);
             
-            // Format starting values as fractions for the display
             let aFrac = toFraction(a);
             let absBFrac = toFraction(absB);
             let bFrac = toFraction(b);
@@ -767,11 +741,10 @@ function parseCustomInput(val) {
 
             out.innerHTML = steps;
             
-            // Tell MathJax to re-render the formulas
             if (window.MathJax) {
                 MathJax.typesetPromise([out]);
             }
         }
-    </script>
+</script>
 </body>
 </html>
